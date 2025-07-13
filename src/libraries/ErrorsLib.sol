@@ -95,4 +95,7 @@ library ErrorsLib {
 
     /// @notice Thrown when all caps have been reached.
     error AllCapsReached();
+
+    /// @notice Thrown when the caller is not a whitelisted vault creator.
+    error NotVaultCreator();
 }

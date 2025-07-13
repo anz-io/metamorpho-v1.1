@@ -96,6 +96,9 @@ library EventsLib {
     /// @notice Emitted when an `amount` of `token` is transferred to the skim recipient by `caller`.
     event Skim(address indexed caller, address indexed token, uint256 amount);
 
+    /// @notice Emitted when a vault creator is set.
+    event SetVaultCreator(address indexed vaultCreator, bool isWhiteList);
+
     /// @notice Emitted when a new MetaMorphoV1_1 vault is created.
     /// @param metaMorpho The address of the MetaMorphoV1_1 vault.
     /// @param caller The caller of the function.
