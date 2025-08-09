@@ -10,6 +10,20 @@ import {ErrorsLib} from "./libraries/ErrorsLib.sol";
 import {MetaMorphoV1_1} from "./MetaMorphoV1_1.sol";
 
 import {Ownable2Step, Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import {UpgradeableBeacon} from "../lib/openzeppelin-contracts/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import {BeaconProxy} from "../lib/openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol";
+
+/// @dev newly added: interface for the initializer of MetaMorphoV1_1
+interface IMetaMorphoV1_1_Initializer {
+    function initialize(
+        address owner,
+        address morpho,
+        uint256 initialTimelock,
+        address asset,
+        string memory name,
+        string memory symbol
+    ) external;
+}
 
 /// @title MetaMorphoV1_1Factory
 /// @author Morpho Labs
@@ -20,6 +34,9 @@ contract MetaMorphoV1_1Factory is IMetaMorphoV1_1Factory, Ownable2Step {
 
     /// @inheritdoc IMetaMorphoV1_1Factory
     address public immutable MORPHO;
+
+    /// @dev newly added: the address of the beacon contract for MetaMorpho
+    address public immutable BEACON;
 
     /* STORAGE */
 
@@ -35,8 +52,17 @@ contract MetaMorphoV1_1Factory is IMetaMorphoV1_1Factory, Ownable2Step {
     /// @param morpho The address of the Morpho contract.
     constructor(address morpho) Ownable(msg.sender) {
         if (morpho == address(0)) revert ErrorsLib.ZeroAddress();
+        MetaMorphoV1_1 implementation = new MetaMorphoV1_1(
+            address(0),
+            address(0),
+            0,
+            address(0),
+            "",
+            "" // Zero constructor arguments
+        );
 
         MORPHO = morpho;
+        BEACON = address(new UpgradeableBeacon(address(implementation), msg.sender));
     }
 
     /* MODIFIERS */
@@ -63,9 +89,11 @@ contract MetaMorphoV1_1Factory is IMetaMorphoV1_1Factory, Ownable2Step {
         string memory symbol,
         bytes32 salt
     ) public onlyVaultCreator returns (IMetaMorphoV1_1 metaMorpho) {
-        metaMorpho = IMetaMorphoV1_1(
-            address(new MetaMorphoV1_1{salt: salt}(initialOwner, MORPHO, initialTimelock, asset, name, symbol))
+        bytes memory data = abi.encodeWithSelector(
+            IMetaMorphoV1_1_Initializer.initialize.selector, initialOwner, MORPHO, initialTimelock, asset, name, symbol
         );
+        BeaconProxy proxy = new BeaconProxy{salt: salt}(BEACON, data);
+        metaMorpho = IMetaMorphoV1_1(address(proxy));
 
         isMetaMorpho[address(metaMorpho)] = true;
 
