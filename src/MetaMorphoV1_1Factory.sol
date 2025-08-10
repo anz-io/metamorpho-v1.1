@@ -120,8 +120,10 @@ contract MetaMorphoV1_1Factory is IMetaMorphoV1_1Factory, Ownable2Step {
         metaMorpho = createMetaMorpho(address(this), initialTimelock, asset, name, symbol, salt);
 
         metaMorpho.setCurator(initialCurator);
-        metaMorpho.setFee(initialFee);
         metaMorpho.setFeeRecipient(initialFeeRecipient);
+        if (initialFee != 0) {
+            metaMorpho.setFee(initialFee);
+        }
         metaMorpho.submitGuardian(initialGuardian);
         metaMorpho.transferOwnership(initialOwner);
     }
